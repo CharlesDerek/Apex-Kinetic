@@ -1,0 +1,11 @@
+[package]
+name = "apex_kinetic_data_plane"
+version = "0.1.0"
+edition = "2021"
+authors = ["Apex Kinetic"]
+description = "Memory-safe low-level runtime engine for edge hardware coordination."
+license = "MIT"
+
+[dependencies]
+log = "0.4"
+env_logger = "0.10"

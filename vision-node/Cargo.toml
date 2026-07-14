@@ -1,0 +1,17 @@
+[package]
+name = "apex_kinetic_vision_node"
+version = "0.1.0"
+edition = "2021"
+
+description = "Secure RTSP ingress worker for edge video delivery to an NVR."
+authors = ["Apex Kinetic"]
+license = "MIT"
+
+[dependencies]
+anyhow = "1.0"
+env_logger = "0.10"
+log = "0.4"
+tokio = { version = "1.38", features = ["full"] }
+tokio-rustls = "0.23"
+rustls = "0.20"
+rustls-pemfile = "1.0"

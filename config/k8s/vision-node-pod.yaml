@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: apex-kinetic-vision-node
+  namespace: apex-kinetic
+  labels:
+    role: vision-node
+spec:
+  containers:
+    - name: vision-node
+      image: apex-kinetic/vision-node:latest
+      command: ["/usr/local/bin/vision-node"]
+      env:
+        - name: RTSP_SOURCE_URL
+          value: "rtsp://edge-camera.local/stream"
+        - name: NVR_TARGET_HOST
+          value: "annke-nvr.local"
+        - name: NVR_TARGET_PORT
+          value: "554"
+      securityContext:
+        runAsNonRoot: true
+        allowPrivilegeEscalation: false

@@ -1,0 +1,13 @@
+topics:
+  - name: imu.telemetry
+    partitions: 3
+    replication_factor: 1
+    description: "Inertial measurement unit telemetry from edge hardware"
+  - name: proximity.telemetry
+    partitions: 2
+    replication_factor: 1
+    description: "Proximity and range sensor event stream"
+  - name: system.health
+    partitions: 1
+    replication_factor: 1
+    description: "Local edge node health and availability metrics"

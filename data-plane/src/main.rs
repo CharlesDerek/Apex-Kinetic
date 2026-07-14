@@ -5,7 +5,11 @@ use drivers::drv8835::Drv8835Controller;
 use drivers::mpu6050::Mpu6050Sensor;
 use drivers::tb6612::Tb6612Controller;
 use sensors::proximity::ProximitySensor;
-use std::{sync::{Arc, Mutex}, thread, time::Duration};
+use std::{
+    sync::{Arc, Mutex},
+    thread,
+    time::Duration,
+};
 
 #[derive(Debug, Default)]
 struct HardwareState {
@@ -29,31 +33,27 @@ fn main() {
     let right_motor_thread = right_motor.clone();
     let track_motor_thread = track_motor.clone();
     let health_state = state.clone();
-    thread::spawn(move || {
-        loop {
-            let imu_reading = imu.read_imu_metrics();
-            let mut state = health_state.lock().unwrap();
-            state.imu_status = imu_reading;
-            thread::sleep(Duration::from_millis(250));
-        }
+    thread::spawn(move || loop {
+        let imu_reading = imu.read_imu_metrics();
+        let mut state = health_state.lock().unwrap();
+        state.imu_status = imu_reading;
+        thread::sleep(Duration::from_millis(250));
     });
 
     let proximity_state = state.clone();
-    thread::spawn(move || {
-        loop {
-            let distance = proximity.poll_distance_mm();
+    thread::spawn(move || loop {
+        let distance = proximity.poll_distance_mm();
+        let mut state = proximity_state.lock().unwrap();
+        state.proximity_status = format!("distance_mm={}", distance);
+        if distance < 300 {
+            left_motor_thread.stop();
+            right_motor_thread.stop();
+            track_motor_thread.set_speed(0, 0);
             let mut state = proximity_state.lock().unwrap();
-            state.proximity_status = format!("distance_mm={}", distance);
-            if distance < 300 {
-                left_motor_thread.stop();
-                right_motor_thread.stop();
-                track_motor_thread.set_speed(0, 0);
-                let mut state = proximity_state.lock().unwrap();
-                state.left_motor_speed = 0;
-                state.right_motor_speed = 0;
-            }
-            thread::sleep(Duration::from_millis(200));
+            state.left_motor_speed = 0;
+            state.right_motor_speed = 0;
         }
+        thread::sleep(Duration::from_millis(200));
     });
 
     loop {

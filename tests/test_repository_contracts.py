@@ -74,7 +74,14 @@ class RepositoryContractsTest(unittest.TestCase):
         topic_names = {topic["name"] for topic in topics}
 
         self.assertLessEqual(
-            {"imu.telemetry", "proximity.telemetry", "system.health"}, topic_names
+            {
+                "imu.telemetry",
+                "proximity.telemetry",
+                "system.health",
+                "rtsp.control",
+                "rtsp.schedule",
+            },
+            topic_names,
         )
         self.assertTrue(all(topic["partitions"] >= 1 for topic in topics))
         self.assertTrue(all(topic["replication_factor"] >= 1 for topic in topics))

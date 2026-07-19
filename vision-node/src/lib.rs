@@ -10,6 +10,8 @@ use tokio_rustls::{
     TlsConnector,
 };
 
+pub mod rtsp_control;
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct VisionNodeConfig {
     pub source_url: String,

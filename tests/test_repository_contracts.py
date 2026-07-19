@@ -80,6 +80,8 @@ class RepositoryContractsTest(unittest.TestCase):
                 "system.health",
                 "rtsp.control",
                 "rtsp.schedule",
+                "audio.control",
+                "audio.status",
             },
             topic_names,
         )

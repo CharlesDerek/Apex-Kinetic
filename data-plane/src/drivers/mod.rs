@@ -7,6 +7,7 @@ pub mod line_tracking;
 pub mod mpu6050;
 pub mod rgb_led;
 pub mod servo;
+pub mod speaker;
 pub mod tb6612;
 pub mod ultrasonic;
 pub mod voltage;

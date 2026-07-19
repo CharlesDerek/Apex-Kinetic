@@ -22,3 +22,23 @@ Initial command types:
 - `DisableTalkback`
 
 The current implementation is intentionally transport-neutral. It models topic names, command keys, scheduled execution checks, and due-command filtering without requiring a live Kafka broker or camera in CI.
+
+## Two-Way Speaker and Talkback Audio
+
+The data-plane now includes a `speaker` driver model for future speaker, amplifier, and talkback routing integrations.
+
+Planned runtime flow:
+
+1. `control-plane` publishes speaker commands to `audio.control`.
+2. `data-plane` consumes routed commands and applies target-specific I2S, DAC, amplifier, or GPIO operations behind the typed driver model.
+3. `data-plane` reports local speaker state and talkback session health to `audio.status`.
+4. `vision-node` coordinates talkback enablement with RTSP session state so camera video and remote audio permissions stay aligned.
+
+Initial control surfaces:
+
+- Volume clamping from `0..=100`
+- Mute and unmute state transitions
+- Local speaker, remote talkback, and two-way call routing
+- Sample-rate and channel-count configuration
+
+The initial model deliberately avoids naming a concrete audio chip. A physical adapter can later map `SpeakerState` into ALSA, I2S, USB audio, or board-specific amplifier calls.

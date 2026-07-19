@@ -17,6 +17,7 @@ The current implementation enforces a **target-agnostic architecture**. It model
 | `voltage` | Telemetry Input Stage | Preserves analog-to-digital conversion models alongside non-linear compensation formulas for voltage rail tracking. |
 | `ultrasonic` | Transceiver Ingress Loop | Decouples raw signal timing arrays into real-time distance matrices, enforcing runtime-safety data limits. |
 | `servo` | Actuation Interface | Constrains dual-axis angular coordinates within explicit physical boundary limits and settles delay windows. |
+| `speaker` | Two-Way Audio Interface | Models volume, mute, sample-rate, channel count, and route selection for speaker and talkback sessions. |
 | `ir_receiver` | NEC Demodulator Loop | Re-maps chronological pulse sequences into a structured, typed command lookup vector. |
 | `vision-node::rtsp_control` | RTSP Session Control Plane | Defines scheduled camera stream control messages for future Kafka-backed RTSP lifecycle automation. |
 

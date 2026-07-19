@@ -4,6 +4,7 @@ use apex_kinetic_data_plane::drivers::{
     key::KeyDriver,
     mpu6050::{Mpu6050Sensor, RawMotion},
     servo::{ServoAxis, ServoDriver},
+    speaker::{AudioRoute, SpeakerConfig, SpeakerDriver, AUDIO_CONTROL_TOPIC, AUDIO_STATUS_TOPIC},
     tb6612::Tb6612Controller,
     ultrasonic::UltrasonicDriver,
     voltage::VoltageDriver,
@@ -106,4 +107,23 @@ fn peripheral_helpers_clamp_and_decode_values() {
     let command = servo.set_axis(ServoAxis::Both, 90);
     assert_eq!(command.axis, ServoAxis::Both);
     assert_eq!(servo.angles(), (90, 90));
+}
+
+#[test]
+fn speaker_driver_clamps_volume_and_tracks_talkback_route() {
+    let mut speaker = SpeakerDriver::new(SpeakerConfig::new(48_000, 2, 120));
+
+    assert_eq!(AUDIO_CONTROL_TOPIC, "audio.control");
+    assert_eq!(AUDIO_STATUS_TOPIC, "audio.status");
+    assert_eq!(speaker.state().config.volume_percent, 100);
+    assert_eq!(speaker.state().config.channels, 2);
+
+    let routed = speaker.route_audio(AudioRoute::TwoWayCall);
+    assert_eq!(routed.route, AudioRoute::TwoWayCall);
+
+    let muted = speaker.set_muted(true);
+    assert!(muted.muted);
+
+    let quiet = speaker.set_volume(15);
+    assert_eq!(quiet.config.volume_percent, 15);
 }

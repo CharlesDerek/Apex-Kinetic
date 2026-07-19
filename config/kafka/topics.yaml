@@ -19,3 +19,11 @@ topics:
     partitions: 3
     replication_factor: 1
     description: "Scheduled RTSP control intents emitted by the control plane"
+  - name: audio.control
+    partitions: 3
+    replication_factor: 1
+    description: "Two-way speaker and talkback routing commands"
+  - name: audio.status
+    partitions: 1
+    replication_factor: 1
+    description: "Speaker, amplifier, and talkback session state updates"

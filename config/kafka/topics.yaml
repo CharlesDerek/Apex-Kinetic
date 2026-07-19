@@ -27,3 +27,19 @@ topics:
     partitions: 1
     replication_factor: 1
     description: "Speaker, amplifier, and talkback session state updates"
+  - name: arm.control
+    partitions: 3
+    replication_factor: 1
+    description: "Six-axis arm joint command requests"
+  - name: arm.status
+    partitions: 1
+    replication_factor: 1
+    description: "Six-axis arm pose, limit, and health updates"
+  - name: display.control
+    partitions: 3
+    replication_factor: 1
+    description: "TFT screen mode and video-call display commands"
+  - name: display.status
+    partitions: 1
+    replication_factor: 1
+    description: "TFT screen mode, backlight, and rendering health updates"

@@ -1,0 +1,35 @@
+peripherals:
+  six_axis_arm:
+    enabled: false
+    command_topic: arm.control
+    status_topic: arm.status
+    axes:
+      - name: base
+        min_degrees: -180
+        max_degrees: 180
+      - name: shoulder
+        min_degrees: -90
+        max_degrees: 120
+      - name: elbow
+        min_degrees: -135
+        max_degrees: 135
+      - name: wrist_pitch
+        min_degrees: -90
+        max_degrees: 90
+      - name: wrist_roll
+        min_degrees: -180
+        max_degrees: 180
+      - name: gripper
+        min_degrees: 0
+        max_degrees: 90
+  tft_display:
+    enabled: false
+    command_topic: display.control
+    status_topic: display.status
+    width_px: 480
+    height_px: 320
+    refresh_hz: 30
+    supported_modes:
+      - standby
+      - local_preview
+      - remote_video_call

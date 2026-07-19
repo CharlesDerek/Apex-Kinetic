@@ -42,3 +42,35 @@ Initial control surfaces:
 - Sample-rate and channel-count configuration
 
 The initial model deliberately avoids naming a concrete audio chip. A physical adapter can later map `SpeakerState` into ALSA, I2S, USB audio, or board-specific amplifier calls.
+
+## Six-Axis Arm Expansion
+
+The data-plane now includes a `six_axis_arm` model that constrains future manipulator commands before any specific servo bus, CAN controller, or PWM expansion board is selected.
+
+Planned runtime flow:
+
+1. `control-plane` publishes joint commands or higher-level poses to `arm.control`.
+2. `data-plane` clamps every target against configured per-axis limits before dispatching to hardware.
+3. `data-plane` emits pose and limit state to `arm.status`.
+4. Future safety logic can reject conflicting arm motion when proximity or platform-motion telemetry indicates an unsafe workspace.
+
+The initial supported axes are base, shoulder, elbow, wrist pitch, wrist roll, and gripper. Default limits are documented in `config/hardware/future-peripherals.yaml`.
+
+## TFT Screen and Two-Way Video Calls
+
+The data-plane now includes a `tft_display` model for a future local screen used by camera previews and two-way calls.
+
+Planned runtime flow:
+
+1. `control-plane` publishes screen commands to `display.control`.
+2. `vision-node` negotiates remote video-call media and emits display mode changes.
+3. `data-plane` applies target-specific frame-buffer, SPI, DSI, or HDMI updates behind the typed TFT model.
+4. `data-plane` publishes display health and current mode to `display.status`.
+
+Initial screen modes:
+
+- `Standby`
+- `LocalPreview`
+- `RemoteVideoCall`
+
+The initial configuration assumes a 480x320 TFT at 30 Hz and keeps the feature disabled until a physical display adapter is selected.

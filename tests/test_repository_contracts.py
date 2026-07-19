@@ -82,8 +82,27 @@ class RepositoryContractsTest(unittest.TestCase):
                 "rtsp.schedule",
                 "audio.control",
                 "audio.status",
+                "arm.control",
+                "arm.status",
+                "display.control",
+                "display.status",
             },
             topic_names,
         )
         self.assertTrue(all(topic["partitions"] >= 1 for topic in topics))
         self.assertTrue(all(topic["replication_factor"] >= 1 for topic in topics))
+
+    def test_future_peripheral_config_matches_control_topics(self) -> None:
+        config = load_yaml("config/hardware/future-peripherals.yaml")["peripherals"]
+
+        self.assertEqual(config["six_axis_arm"]["command_topic"], "arm.control")
+        self.assertEqual(config["six_axis_arm"]["status_topic"], "arm.status")
+        self.assertEqual(len(config["six_axis_arm"]["axes"]), 6)
+        self.assertFalse(config["six_axis_arm"]["enabled"])
+
+        display = config["tft_display"]
+        self.assertEqual(display["command_topic"], "display.control")
+        self.assertEqual(display["status_topic"], "display.status")
+        self.assertEqual((display["width_px"], display["height_px"]), (480, 320))
+        self.assertIn("remote_video_call", display["supported_modes"])
+        self.assertFalse(display["enabled"])

@@ -4,8 +4,13 @@ use apex_kinetic_data_plane::drivers::{
     key::KeyDriver,
     mpu6050::{Mpu6050Sensor, RawMotion},
     servo::{ServoAxis, ServoDriver},
+    six_axis_arm::{ArmAxis, SixAxisArmDriver, ARM_CONTROL_TOPIC, ARM_STATUS_TOPIC},
     speaker::{AudioRoute, SpeakerConfig, SpeakerDriver, AUDIO_CONTROL_TOPIC, AUDIO_STATUS_TOPIC},
     tb6612::Tb6612Controller,
+    tft_display::{
+        DisplayMode, TftDisplayConfig, TftDisplayDriver, DISPLAY_CONTROL_TOPIC,
+        DISPLAY_STATUS_TOPIC,
+    },
     ultrasonic::UltrasonicDriver,
     voltage::VoltageDriver,
 };
@@ -126,4 +131,40 @@ fn speaker_driver_clamps_volume_and_tracks_talkback_route() {
 
     let quiet = speaker.set_volume(15);
     assert_eq!(quiet.config.volume_percent, 15);
+}
+
+#[test]
+fn six_axis_arm_clamps_joint_targets_and_speed() {
+    let arm = SixAxisArmDriver::default();
+
+    assert_eq!(ARM_CONTROL_TOPIC, "arm.control");
+    assert_eq!(ARM_STATUS_TOPIC, "arm.status");
+
+    let shoulder = arm.command(ArmAxis::Shoulder, 180, 150);
+    assert_eq!(shoulder.target_degrees, 120);
+    assert_eq!(shoulder.speed_percent, 100);
+
+    let gripper = arm.command(ArmAxis::Gripper, -45, 25);
+    assert_eq!(gripper.target_degrees, 0);
+    assert_eq!(gripper.speed_percent, 25);
+
+    let neutral = arm.neutral_pose(10);
+    assert_eq!(neutral.joints.len(), 6);
+    assert!(neutral.joints.iter().all(|joint| joint.speed_percent == 10));
+}
+
+#[test]
+fn tft_display_tracks_video_call_mode_and_backlight_limits() {
+    let mut display = TftDisplayDriver::new(TftDisplayConfig::new(0, 240, 0));
+
+    assert_eq!(DISPLAY_CONTROL_TOPIC, "display.control");
+    assert_eq!(DISPLAY_STATUS_TOPIC, "display.status");
+    assert_eq!(display.state().config.width_px, 1);
+    assert_eq!(display.state().config.refresh_hz, 1);
+
+    let call = display.set_mode(DisplayMode::RemoteVideoCall);
+    assert_eq!(call.mode, DisplayMode::RemoteVideoCall);
+
+    let bright = display.set_backlight(200);
+    assert_eq!(bright.backlight_percent, 100);
 }

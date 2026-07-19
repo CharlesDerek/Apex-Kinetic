@@ -64,7 +64,7 @@ resource "kubernetes_pod_v1" "workload" {
       }
 
       security_context {
-        run_as_non_root             = true
+        run_as_non_root            = true
         allow_privilege_escalation = false
       }
     }
@@ -90,12 +90,12 @@ resource "kubernetes_network_policy_v1" "zero_trust" {
         }
       }
 
-      port {
+      ports {
         port     = "9092"
         protocol = "TCP"
       }
 
-      port {
+      ports {
         port     = "554"
         protocol = "TCP"
       }
@@ -110,7 +110,7 @@ resource "kubernetes_network_policy_v1" "zero_trust" {
         }
       }
 
-      port {
+      ports {
         port     = "9092"
         protocol = "TCP"
       }
@@ -125,7 +125,7 @@ resource "kubernetes_network_policy_v1" "zero_trust" {
         }
       }
 
-      port {
+      ports {
         port     = "554"
         protocol = "TCP"
       }

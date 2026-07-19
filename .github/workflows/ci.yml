@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - dev
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    name: Rust crates
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        crate:
+          - data-plane
+          - vision-node
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ matrix.crate }}
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path ${{ matrix.crate }}/Cargo.toml -- --check
+
+      - name: Lint
+        run: cargo clippy --manifest-path ${{ matrix.crate }}/Cargo.toml --all-targets -- -D warnings
+
+      - name: Test
+        run: cargo test --manifest-path ${{ matrix.crate }}/Cargo.toml --all-targets
+
+  repository-contracts:
+    name: Repository contracts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: python -m pip install -r tests/requirements.txt
+
+      - name: Validate Kubernetes, Kafka, and workflow contracts
+        run: python -m unittest discover -s tests -p 'test_*.py'
+
+  opentofu:
+    name: OpenTofu
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/opentofu/app-k8s
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install OpenTofu
+        uses: opentofu/setup-opentofu@v2
+
+      - name: Check formatting
+        run: tofu fmt -check -recursive
+
+      - name: Initialize
+        run: tofu init -backend=false
+
+      - name: Validate
+        run: tofu validate
+
+      - name: Test
+        run: tofu test

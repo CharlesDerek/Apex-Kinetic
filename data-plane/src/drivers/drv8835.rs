@@ -110,18 +110,18 @@ impl Drv8835Controller {
 }
 
 fn signed_speed_to_pwm(speed: i8) -> u8 {
-    speed.unsigned_abs().min(MAX_SPEED)
+    speed.unsigned_abs()
 }
 
 fn motor_a_output(direction: MotorDirection, speed: u8) -> MotorOutput {
     match direction {
         MotorDirection::Forward => MotorOutput {
             direction_pin_high: false,
-            pwm: speed.min(MAX_SPEED),
+            pwm: speed,
         },
         MotorDirection::Backward => MotorOutput {
             direction_pin_high: true,
-            pwm: speed.min(MAX_SPEED),
+            pwm: speed,
         },
         MotorDirection::Coast => MotorOutput {
             direction_pin_high: false,
@@ -134,11 +134,11 @@ fn motor_b_output(direction: MotorDirection, speed: u8) -> MotorOutput {
     match direction {
         MotorDirection::Forward => MotorOutput {
             direction_pin_high: true,
-            pwm: speed.min(MAX_SPEED),
+            pwm: speed,
         },
         MotorDirection::Backward => MotorOutput {
             direction_pin_high: false,
-            pwm: speed.min(MAX_SPEED),
+            pwm: speed,
         },
         MotorDirection::Coast => MotorOutput {
             direction_pin_high: false,

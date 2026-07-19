@@ -14,3 +14,9 @@ impl ProximitySensor {
         450
     }
 }
+
+impl Default for ProximitySensor {
+    fn default() -> Self {
+        Self::new()
+    }
+}

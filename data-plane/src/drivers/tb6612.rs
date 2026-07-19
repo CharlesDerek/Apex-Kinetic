@@ -78,18 +78,18 @@ fn signed_direction(speed: i8) -> MotorDirection {
 }
 
 fn signed_speed_to_pwm(speed: i8) -> u8 {
-    speed.unsigned_abs().min(MAX_SPEED)
+    speed.unsigned_abs()
 }
 
 fn motor_output(direction: MotorDirection, speed: u8) -> MotorOutput {
     match direction {
         MotorDirection::Forward => MotorOutput {
             direction_pin_high: true,
-            pwm: speed.min(MAX_SPEED),
+            pwm: speed,
         },
         MotorDirection::Backward => MotorOutput {
             direction_pin_high: false,
-            pwm: speed.min(MAX_SPEED),
+            pwm: speed,
         },
         MotorDirection::Coast => stopped_output(),
     }

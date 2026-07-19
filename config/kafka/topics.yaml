@@ -11,3 +11,35 @@ topics:
     partitions: 1
     replication_factor: 1
     description: "Local edge node health and availability metrics"
+  - name: rtsp.control
+    partitions: 3
+    replication_factor: 1
+    description: "Programmatic camera stream control commands for RTSP ingress workers"
+  - name: rtsp.schedule
+    partitions: 3
+    replication_factor: 1
+    description: "Scheduled RTSP control intents emitted by the control plane"
+  - name: audio.control
+    partitions: 3
+    replication_factor: 1
+    description: "Two-way speaker and talkback routing commands"
+  - name: audio.status
+    partitions: 1
+    replication_factor: 1
+    description: "Speaker, amplifier, and talkback session state updates"
+  - name: arm.control
+    partitions: 3
+    replication_factor: 1
+    description: "Six-axis arm joint command requests"
+  - name: arm.status
+    partitions: 1
+    replication_factor: 1
+    description: "Six-axis arm pose, limit, and health updates"
+  - name: display.control
+    partitions: 3
+    replication_factor: 1
+    description: "TFT screen mode and video-call display commands"
+  - name: display.status
+    partitions: 1
+    replication_factor: 1
+    description: "TFT screen mode, backlight, and rendering health updates"

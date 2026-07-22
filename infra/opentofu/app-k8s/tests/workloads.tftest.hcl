@@ -21,11 +21,28 @@ run "workloads_plan_with_expected_images_and_security_context" {
   }
 
   assert {
+    condition = output.workload_kinds == {
+      control-plane = "Deployment"
+      data-plane    = "DaemonSet"
+      vision-node   = "Deployment"
+    }
+    error_message = "Workloads should use controller-managed Kubernetes resources."
+  }
+
+  assert {
     condition = alltrue([
       for context in values(output.workload_security_contexts) :
       context.run_as_non_root && !context.allow_privilege_escalation
     ])
-    error_message = "All pods must run as non-root without privilege escalation."
+    error_message = "All workload containers must run as non-root without privilege escalation."
+  }
+
+  assert {
+    condition = alltrue([
+      for limits in values(output.workload_resource_limits) :
+      contains(keys(limits), "cpu") && contains(keys(limits), "memory")
+    ])
+    error_message = "All workload containers should set CPU and memory limits."
   }
 }
 

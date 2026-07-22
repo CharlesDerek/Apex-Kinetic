@@ -58,9 +58,9 @@ docker build -t apex-kinetic/vision-node:local ./vision-node
 
 The next deployment work should turn the current modeled runtime into an end-to-end deployable edge stack:
 
-1. Containerize all services with production Dockerfiles and CI image-build coverage.
-2. Replace raw Kubernetes Pods with controller-managed Deployments or DaemonSets, including probes and resource requests.
-3. Remove configuration drift between static Kubernetes YAML and the OpenTofu workload module.
+1. Done: Containerize all services with production Dockerfiles and CI image-build coverage.
+2. Done: Replace raw Kubernetes Pods with controller-managed Deployments or DaemonSets, including probes and resource requests.
+3. Next: Remove configuration drift between static Kubernetes YAML and the OpenTofu workload module.
 4. Add a documented local deployment target using `kind` or `k3d` with Kafka.
 5. Publish immutable images to GHCR from CI using commit SHA tags.
 6. Add runtime health contracts that publish each service's availability to `system.health`.

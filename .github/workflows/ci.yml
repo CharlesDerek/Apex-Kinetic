@@ -61,6 +61,23 @@ jobs:
       - name: Validate Kubernetes, Kafka, and workflow contracts
         run: python -m unittest discover -s tests -p 'test_*.py'
 
+  container-images:
+    name: Container images
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - control-plane
+          - data-plane
+          - vision-node
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build --pull --tag apex-kinetic/${{ matrix.service }}:ci ./${{ matrix.service }}
+
   opentofu:
     name: OpenTofu
     runs-on: ubuntu-latest

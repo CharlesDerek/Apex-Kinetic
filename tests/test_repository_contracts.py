@@ -52,6 +52,7 @@ class RepositoryContractsTest(unittest.TestCase):
 
         self.assertIn("rust", jobs)
         self.assertIn("repository-contracts", jobs)
+        self.assertIn("container-images", jobs)
         self.assertIn("opentofu", jobs)
 
         rust_commands = "\n".join(
@@ -67,6 +68,25 @@ class RepositoryContractsTest(unittest.TestCase):
         self.assertIn("tofu fmt -check", tofu_commands)
         self.assertIn("tofu validate", tofu_commands)
         self.assertIn("tofu test", tofu_commands)
+
+        image_commands = "\n".join(
+            step.get("run", "") for step in jobs["container-images"]["steps"] if "run" in step
+        )
+        self.assertIn("docker build", image_commands)
+        self.assertEqual(
+            set(jobs["container-images"]["strategy"]["matrix"]["service"]),
+            {"control-plane", "data-plane", "vision-node"},
+        )
+
+    def test_all_workloads_have_container_build_definitions(self) -> None:
+        for service in ("control-plane", "data-plane", "vision-node"):
+            dockerfile = ROOT / service / "Dockerfile"
+
+            self.assertTrue(dockerfile.exists(), f"{service} is missing a Dockerfile")
+            self.assertIn(
+                f"apex-kinetic/{service}:latest",
+                load_yaml(f"config/k8s/{service}-pod.yaml")["spec"]["containers"][0]["image"],
+            )
 
 
     def test_kafka_topic_contract_matches_control_plane_publishers(self) -> None:

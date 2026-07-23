@@ -74,6 +74,21 @@ class RepositoryContractsTest(unittest.TestCase):
             {"control-plane", "data-plane", "vision-node"},
         )
 
+    def test_local_deployment_target_is_documented_and_scripted(self) -> None:
+        makefile = read_text("Makefile")
+        script = ROOT / "scripts/local-kind-deploy.sh"
+        docs = read_text("docs/local-deployment.md")
+        providers = read_text("infra/opentofu/app-k8s/providers.tf")
+        variables = read_text("infra/opentofu/app-k8s/variables.tf")
+
+        self.assertTrue(script.exists())
+        self.assertIn("local-up", makefile)
+        self.assertIn("local-down", makefile)
+        self.assertIn("kind", docs)
+        self.assertIn("Kafka-compatible", docs)
+        self.assertIn("config_path", providers)
+        self.assertIn("kubernetes_config_context", variables)
+
     def test_all_workloads_have_container_build_definitions(self) -> None:
         module = read_text("infra/opentofu/app-k8s/main.tf")
 

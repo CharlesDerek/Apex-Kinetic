@@ -39,3 +39,15 @@ variable "kubernetes_ca_certificate" {
   sensitive   = true
   default     = null
 }
+
+variable "kubernetes_config_path" {
+  type        = string
+  description = "Optional kubeconfig path for local deployments."
+  default     = null
+}
+
+variable "kubernetes_config_context" {
+  type        = string
+  description = "Optional kubeconfig context for local deployments."
+  default     = null
+}

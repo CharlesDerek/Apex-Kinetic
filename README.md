@@ -57,6 +57,14 @@ docker build -t apex-kinetic/vision-node:local ./vision-node
 
 Kubernetes workload, namespace, and network-policy resources are defined only in `infra/opentofu/app-k8s/`. Static Kubernetes YAML is intentionally not checked in so OpenTofu remains the single deployment source.
 
+Deploy the stack to a local `kind` cluster with:
+
+```bash
+make local-up
+```
+
+See `docs/local-deployment.md` for prerequisites, overrides, status checks, and teardown.
+
 ## Deployment Roadmap
 
 The next deployment work should turn the current modeled runtime into an end-to-end deployable edge stack:
@@ -64,8 +72,8 @@ The next deployment work should turn the current modeled runtime into an end-to-
 1. Done: Containerize all services with production Dockerfiles and CI image-build coverage.
 2. Done: Replace raw Kubernetes Pods with controller-managed Deployments or DaemonSets, including probes and resource requests.
 3. Done: Remove configuration drift by making OpenTofu the only Kubernetes deployment source.
-4. Next: Add a documented local deployment target using `kind` or `k3d` with Kafka.
-5. Publish immutable images to GHCR from CI using commit SHA tags.
+4. Done: Add a documented local deployment target using `kind` with a Kafka-compatible broker.
+5. Next: Publish immutable images to GHCR from CI using commit SHA tags.
 6. Add runtime health contracts that publish each service's availability to `system.health`.
 
 ---

@@ -11,69 +11,35 @@ def load_yaml(path: str) -> dict:
         return yaml.safe_load(handle)
 
 
-def workload_container(manifest: dict) -> dict:
-    return manifest["spec"]["template"]["spec"]["containers"][0]
+def read_text(path: str) -> str:
+    return (ROOT / path).read_text(encoding="utf-8")
 
 
 class RepositoryContractsTest(unittest.TestCase):
-    def test_kubernetes_workloads_use_controllers_with_probe_and_resource_contracts(self) -> None:
-        workload_paths = sorted((ROOT / "config/k8s").glob("*-deployment.yaml"))
-        workload_paths.extend(sorted((ROOT / "config/k8s").glob("*-daemonset.yaml")))
+    def test_opentofu_is_the_single_kubernetes_deployment_source(self) -> None:
+        static_kubernetes_manifests = list((ROOT / "config").glob("k8s/*.yaml"))
 
-        self.assertEqual(len(workload_paths), 3)
-        self.assertFalse(list((ROOT / "config/k8s").glob("*-pod.yaml")))
+        self.assertEqual(static_kubernetes_manifests, [])
 
-        workload_kinds = {}
-        for manifest_path in workload_paths:
-            manifest = load_yaml(str(manifest_path.relative_to(ROOT)))
-            container = workload_container(manifest)
-            role = manifest["metadata"]["labels"]["role"]
-            workload_kinds[role] = manifest["kind"]
+        module = read_text("infra/opentofu/app-k8s/main.tf")
+        self.assertIn('resource "kubernetes_deployment_v1" "workload"', module)
+        self.assertIn('resource "kubernetes_daemon_set_v1" "workload"', module)
+        self.assertIn('resource "kubernetes_network_policy_v1" "zero_trust"', module)
+        self.assertIn("readiness_probe", module)
+        self.assertIn("liveness_probe", module)
+        self.assertIn("resources", module)
+        self.assertIn("run_as_non_root", module)
+        self.assertIn("allow_privilege_escalation = false", module)
 
-            self.assertIn(manifest["kind"], {"Deployment", "DaemonSet"})
-            self.assertEqual(manifest["metadata"]["namespace"], "apex-kinetic")
-            self.assertEqual(
-                manifest["spec"]["selector"]["matchLabels"],
-                manifest["spec"]["template"]["metadata"]["labels"],
-            )
-            self.assertIs(container["securityContext"]["runAsNonRoot"], True)
-            self.assertIs(container["securityContext"]["allowPrivilegeEscalation"], False)
-            self.assertTrue(container["image"].startswith("apex-kinetic/"))
-            self.assertIn("readinessProbe", container)
-            self.assertIn("livenessProbe", container)
-            self.assertIn("requests", container["resources"])
-            self.assertIn("limits", container["resources"])
+    def test_opentofu_network_policy_keeps_default_deny_with_named_exceptions(self) -> None:
+        module = read_text("infra/opentofu/app-k8s/main.tf")
 
-        self.assertEqual(
-            workload_kinds,
-            {
-                "control-plane": "Deployment",
-                "data-plane": "DaemonSet",
-                "vision-node": "Deployment",
-            },
-        )
-
-
-    def test_network_policy_keeps_default_deny_with_named_exceptions(self) -> None:
-        manifest = load_yaml("config/k8s/network-policy.yaml")
-
-        self.assertEqual(manifest["kind"], "NetworkPolicy")
-        self.assertEqual(manifest["spec"]["podSelector"], {})
-        self.assertEqual(set(manifest["spec"]["policyTypes"]), {"Ingress", "Egress"})
-        self.assertTrue(
-            any(
-                port["port"] == 9092
-                for rule in manifest["spec"]["egress"]
-                for port in rule.get("ports", [])
-            )
-        )
-        self.assertTrue(
-            any(
-                port["port"] == 554
-                for rule in manifest["spec"]["egress"]
-                for port in rule.get("ports", [])
-            )
-        )
+        self.assertIn("policy_types = [\"Ingress\", \"Egress\"]", module)
+        self.assertIn('role = "kafka"', module)
+        self.assertIn('role = "vision-node"', module)
+        self.assertIn('port     = "9092"', module)
+        self.assertIn('port     = "554"', module)
+        self.assertNotIn("cidr", module)
 
 
     def test_ci_workflow_runs_rust_python_kubernetes_and_opentofu_checks(self) -> None:
@@ -109,20 +75,13 @@ class RepositoryContractsTest(unittest.TestCase):
         )
 
     def test_all_workloads_have_container_build_definitions(self) -> None:
-        manifest_paths = {
-            "control-plane": "config/k8s/control-plane-deployment.yaml",
-            "data-plane": "config/k8s/data-plane-daemonset.yaml",
-            "vision-node": "config/k8s/vision-node-deployment.yaml",
-        }
+        module = read_text("infra/opentofu/app-k8s/main.tf")
 
-        for service, manifest_path in manifest_paths.items():
+        for service in ("control-plane", "data-plane", "vision-node"):
             dockerfile = ROOT / service / "Dockerfile"
 
             self.assertTrue(dockerfile.exists(), f"{service} is missing a Dockerfile")
-            self.assertIn(
-                f"apex-kinetic/{service}:latest",
-                workload_container(load_yaml(manifest_path))["image"],
-            )
+            self.assertIn(f"apex-kinetic/{service}:${{var.image_tag}}", module)
 
 
     def test_kafka_topic_contract_matches_control_plane_publishers(self) -> None:

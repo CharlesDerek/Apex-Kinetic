@@ -9,7 +9,8 @@ Clean-room implementation for:
 - `data-plane/`: Rust-based low-level runtime and hardware abstraction layer (HAL)
 - `vision-node/`: Rust-based secure RTSP/mTLS ingress worker for edge video capture
 - `control-plane/`: Python asyncio telemetry orchestration and Kafka ingestion
-- `config/`: Kubernetes manifest and Kafka topic definitions for zero-trust deployment
+- `infra/opentofu/app-k8s/`: Kubernetes workload and network-policy deployment source
+- `config/`: Kafka topic definitions and hardware expansion configuration
 
 ## Data-Plane Driver Components
 
@@ -54,14 +55,16 @@ docker build -t apex-kinetic/data-plane:local ./data-plane
 docker build -t apex-kinetic/vision-node:local ./vision-node
 ```
 
+Kubernetes workload, namespace, and network-policy resources are defined only in `infra/opentofu/app-k8s/`. Static Kubernetes YAML is intentionally not checked in so OpenTofu remains the single deployment source.
+
 ## Deployment Roadmap
 
 The next deployment work should turn the current modeled runtime into an end-to-end deployable edge stack:
 
 1. Done: Containerize all services with production Dockerfiles and CI image-build coverage.
 2. Done: Replace raw Kubernetes Pods with controller-managed Deployments or DaemonSets, including probes and resource requests.
-3. Next: Remove configuration drift between static Kubernetes YAML and the OpenTofu workload module.
-4. Add a documented local deployment target using `kind` or `k3d` with Kafka.
+3. Done: Remove configuration drift by making OpenTofu the only Kubernetes deployment source.
+4. Next: Add a documented local deployment target using `kind` or `k3d` with Kafka.
 5. Publish immutable images to GHCR from CI using commit SHA tags.
 6. Add runtime health contracts that publish each service's availability to `system.health`.
 

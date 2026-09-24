@@ -29,10 +29,17 @@ Rust driver models translated from the legacy robot source with translated and m
 
 See `docs/drivers.md` for the driver inventory and migration notes.
 
-The vision node also defines a versioned `system.health` contract with monotonic
-per-instance sequences, dependency-level evidence, failure thresholds, and
-explicit recovery semantics. This keeps readiness decisions deterministic while
-avoiding certificate paths, credentials, or raw stream data in health events.
+The vision node publishes a versioned `system.health` event to Kafka during
+startup, certificate loading, mTLS connection, stream operation, and failures.
+Events have monotonic per-instance sequences and dependency-level status while
+avoiding certificate paths, credentials, or raw stream data. Set
+`KAFKA_BOOTSTRAP_SERVERS` to the broker address; publication failures are logged
+so video ingress can still run when telemetry is temporarily unavailable.
+The vision deployment uses the binary's `--health-check` command as its
+readiness probe; it requires a recent `ready` snapshot from the mTLS stream.
+The liveness probe remains process based.
+The vision worker currently sends a synthetic payload; `ready` confirms mTLS
+connectivity and write activity, not successful camera capture or RTSP decode.
 
 ## CI/CD and Infrastructure Tests
 
@@ -79,9 +86,8 @@ The next deployment work should turn the current modeled runtime into an end-to-
 3. Done: Remove configuration drift by making OpenTofu the only Kubernetes deployment source.
 4. Done: Add a documented local deployment target using `kind` with a Kafka-compatible broker.
 5. Next: Publish immutable images to GHCR from CI using commit SHA tags.
-6. In progress: the Rust vision-node health state machine and serialized
-   `system.health` event contract are implemented; broker publication remains to
-   be wired alongside the control-plane producer.
+6. In progress: the Rust vision node now publishes its runtime health to
+   `system.health`; other services still need the same runtime contract.
 
 ---
 

@@ -25,9 +25,10 @@ locals {
       image   = "apex-kinetic/vision-node:${var.image_tag}"
       command = ["/usr/local/bin/vision-node"]
       env = {
-        RTSP_SOURCE_URL = "rtsp://edge-camera.local/stream"
-        NVR_TARGET_HOST = "annke-nvr.local"
-        NVR_TARGET_PORT = "554"
+        RTSP_SOURCE_URL         = "rtsp://edge-camera.local/stream"
+        NVR_TARGET_HOST         = "annke-nvr.local"
+        NVR_TARGET_PORT         = "554"
+        KAFKA_BOOTSTRAP_SERVERS = "kafka:9092"
       }
       requests = {
         cpu    = "100m"
@@ -115,7 +116,7 @@ resource "kubernetes_deployment_v1" "workload" {
 
           readiness_probe {
             exec {
-              command = local.health_probe_command
+              command = each.key == "vision-node" ? ["/usr/local/bin/vision-node", "--health-check"] : local.health_probe_command
             }
 
             initial_delay_seconds = 5

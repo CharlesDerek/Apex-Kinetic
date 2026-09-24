@@ -29,7 +29,14 @@ KIND_CLUSTER_NAME=apex-dev APEX_NAMESPACE=apex-dev IMAGE_TAG=dev make local-up
 make local-status
 kubectl -n apex-kinetic get pods
 kubectl -n apex-kinetic logs deploy/apex-kinetic-control-plane
+kubectl -n apex-kinetic logs deploy/apex-kinetic-vision-node
 ```
+
+The vision-node readiness probe now checks its own recent mTLS health snapshot.
+The sample deployment does not provision camera or NVR certificates; supply
+trusted client, key, and CA material to the container before expecting the
+vision deployment to become ready. The current worker emits synthetic payloads
+and does not yet validate camera capture.
 
 ## Stop
 

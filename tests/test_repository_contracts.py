@@ -122,6 +122,12 @@ class RepositoryContractsTest(unittest.TestCase):
         self.assertTrue(all(topic["partitions"] >= 1 for topic in topics))
         self.assertTrue(all(topic["replication_factor"] >= 1 for topic in topics))
 
+    def test_vision_node_receives_kafka_bootstrap_for_runtime_health(self) -> None:
+        module = read_text("infra/opentofu/app-k8s/main.tf")
+        vision_block = module.split("vision-node = {", 1)[1].split("\n    }", 1)[0]
+        self.assertIn('KAFKA_BOOTSTRAP_SERVERS = "kafka:9092"', vision_block)
+        self.assertIn('each.key == "vision-node" ? ["/usr/local/bin/vision-node", "--health-check"]', module)
+
     def test_future_peripheral_config_matches_control_topics(self) -> None:
         config = load_yaml("config/hardware/future-peripherals.yaml")["peripherals"]
 

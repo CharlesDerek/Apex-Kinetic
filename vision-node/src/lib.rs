@@ -10,6 +10,7 @@ use tokio_rustls::{
     TlsConnector,
 };
 
+pub mod health;
 pub mod rtsp_control;
 
 #[derive(Clone, Debug, Eq, PartialEq)]

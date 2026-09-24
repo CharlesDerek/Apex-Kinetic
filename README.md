@@ -29,6 +29,11 @@ Rust driver models translated from the legacy robot source with translated and m
 
 See `docs/drivers.md` for the driver inventory and migration notes.
 
+The vision node also defines a versioned `system.health` contract with monotonic
+per-instance sequences, dependency-level evidence, failure thresholds, and
+explicit recovery semantics. This keeps readiness decisions deterministic while
+avoiding certificate paths, credentials, or raw stream data in health events.
+
 ## CI/CD and Infrastructure Tests
 
 The repository now includes a GitHub Actions pipeline in `.github/workflows/ci.yml` with three gates:
@@ -74,7 +79,9 @@ The next deployment work should turn the current modeled runtime into an end-to-
 3. Done: Remove configuration drift by making OpenTofu the only Kubernetes deployment source.
 4. Done: Add a documented local deployment target using `kind` with a Kafka-compatible broker.
 5. Next: Publish immutable images to GHCR from CI using commit SHA tags.
-6. Add runtime health contracts that publish each service's availability to `system.health`.
+6. In progress: the Rust vision-node health state machine and serialized
+   `system.health` event contract are implemented; broker publication remains to
+   be wired alongside the control-plane producer.
 
 ---
 

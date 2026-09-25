@@ -1,14 +1,11 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result};
 use log::{info, warn};
 use std::{
     env, fs,
     sync::Arc,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
-use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
-    net::TcpStream,
-};
+use tokio::net::TcpStream;
 use tokio_rustls::{
     rustls::{Certificate, ClientConfig, PrivateKey, RootCertStore},
     TlsConnector,
@@ -16,6 +13,7 @@ use tokio_rustls::{
 
 pub mod health;
 pub mod rtsp_control;
+pub mod rtsp_media;
 use health::{HealthReporter, KafkaHealthPublisher, DEFAULT_HEALTH_STATE_PATH};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -55,6 +53,7 @@ pub async fn run(config: VisionNodeConfig) -> Result<()> {
     let mut health = HealthReporter::new("vision-node", instance_id, 2);
     health.record_starting("certificate");
     health.record_starting("nvr");
+    health.record_starting("camera");
     publish_health_best_effort(&publisher, &mut health).await;
 
     let connector = match build_tls_connector(&config.cert_path, &config.key_path, &config.ca_path)
@@ -123,50 +122,62 @@ async fn bridge_rtsp_to_nvr_with_health(
     source_url: String,
     mut health: Option<(&KafkaHealthPublisher, &mut HealthReporter)>,
 ) -> Result<()> {
-    info!("Starting RTSP ingestion loop");
-
-    let mut buffer = [0u8; 1024];
-    let mut last_health = tokio::time::Instant::now();
+    info!("Starting RTSP media ingestion");
+    let mut failures = 0u32;
     loop {
-        let sample = generate_dummy_video_payload(&source_url);
-        let write_result =
-            tokio::time::timeout(Duration::from_secs(5), tls_stream.write_all(&sample))
-                .await
-                .context("NVR stream write timed out")
-                .and_then(|result| result.context("NVR stream write failed"));
-        if let Err(error) = write_result {
-            if let Some((publisher, reporter)) = health.as_mut() {
-                reporter.record_unhealthy("nvr", "stream write failed");
-                publish_health_best_effort(publisher, reporter).await;
+        let mut session = match rtsp_media::Session::connect(&source_url).await {
+            Ok(session) => {
+                failures = 0;
+                session
             }
-            return Err(error).context("Failed to send payload to NVR");
-        }
-        match tokio::time::timeout(Duration::from_millis(500), tls_stream.read(&mut buffer)).await {
-            Ok(Ok(0)) => {
+            Err(error) => {
                 if let Some((publisher, reporter)) = health.as_mut() {
-                    reporter.record_unhealthy("nvr", "connection closed");
+                    reporter.record_unhealthy("camera", "RTSP session unavailable");
                     publish_health_best_effort(publisher, reporter).await;
                 }
-                return Err(anyhow!("NVR connection closed"));
+                failures = failures.saturating_add(1);
+                if failures >= 5 {
+                    return Err(error);
+                }
+                tokio::time::sleep(Duration::from_secs((1u64 << failures.min(4)).min(16))).await;
+                continue;
             }
-            Ok(Ok(n)) => info!("Received {} bytes from target NVR", n),
-            Ok(Err(error)) => {
+        };
+        let mut last_health = tokio::time::Instant::now();
+        let mut observed_media = false;
+        loop {
+            match rtsp_media::forward_one(&mut session, &mut tls_stream).await {
+                Ok(()) => {}
+                Err(rtsp_media::ForwardError::Camera(error)) => {
+                    if let Some((publisher, reporter)) = health.as_mut() {
+                        reporter.record_unhealthy("camera", "media flow lost or malformed");
+                        publish_health_best_effort(publisher, reporter).await;
+                    }
+                    failures = failures.saturating_add(1);
+                    if failures >= 5 {
+                        return Err(error);
+                    }
+                    break;
+                }
+                Err(rtsp_media::ForwardError::Downstream(error)) => {
+                    if let Some((publisher, reporter)) = health.as_mut() {
+                        reporter.record_unhealthy("nvr", "media forwarding failed");
+                        publish_health_best_effort(publisher, reporter).await;
+                    }
+                    return Err(error);
+                }
+            }
+            if !observed_media || last_health.elapsed() >= Duration::from_secs(10) {
                 if let Some((publisher, reporter)) = health.as_mut() {
-                    reporter.record_unhealthy("nvr", "stream read failed");
+                    reporter.record_success("camera", "validated RTP media recent");
+                    reporter.record_success("nvr", "media forwarded over mTLS");
                     publish_health_best_effort(publisher, reporter).await;
                 }
-                return Err(error).context("Failed to read from NVR");
+                last_health = tokio::time::Instant::now();
+                observed_media = true;
             }
-            Err(_) => {}
         }
-        if last_health.elapsed() >= Duration::from_secs(30) {
-            if let Some((publisher, reporter)) = health.as_mut() {
-                reporter.record_success("nvr", "mTLS stream active");
-                publish_health_best_effort(publisher, reporter).await;
-            }
-            last_health = tokio::time::Instant::now();
-        }
-        tokio::time::sleep(Duration::from_secs(1)).await;
+        tokio::time::sleep(Duration::from_secs((1u64 << failures.min(4)).min(16))).await;
     }
 }
 
@@ -188,10 +199,6 @@ async fn publish_health_best_effort(
     if let Err(error) = publisher.publish(&event).await {
         warn!("health event publish failed: {error}");
     }
-}
-
-pub fn generate_dummy_video_payload(source_url: &str) -> Vec<u8> {
-    format!("RTSP_FRAME from {}\n", source_url).into_bytes()
 }
 
 pub fn build_tls_connector(cert_path: &str, key_path: &str, ca_path: &str) -> Result<TlsConnector> {

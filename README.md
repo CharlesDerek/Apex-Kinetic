@@ -38,8 +38,18 @@ so video ingress can still run when telemetry is temporarily unavailable.
 The vision deployment uses the binary's `--health-check` command as its
 readiness probe; it requires a recent `ready` snapshot from the mTLS stream.
 The liveness probe remains process based.
-The vision worker currently sends a synthetic payload; `ready` confirms mTLS
-connectivity and write activity, not successful camera capture or RTSP decode.
+The vision worker now opens an RTSP 1.0 session over TCP, negotiates one
+interleaved RTP track, validates RTP framing, and forwards packets over its
+mTLS connection. `ready` requires a packet to reach the downstream socket;
+source setup, stale media, and forwarding failures make the worker unhealthy.
+The reader caps RTSP headers, SDP, and media packets, and the forwarding write
+has a two-second backpressure deadline. It reconnects to a lost camera with
+bounded delays. Camera URLs containing userinfo credentials are rejected so
+they cannot enter logs. Digest/Basic RTSP authentication, RTP decoding, and
+NVR-specific playback protocols are not implemented; the downstream mTLS peer
+must understand the interleaved RTP packet framing. The local fixture tests
+exercise a synthetic RTSP server and downstream packet sink; no physical
+camera or NVR has been validated.
 
 ## CI/CD and Infrastructure Tests
 

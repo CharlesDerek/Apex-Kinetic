@@ -1,6 +1,7 @@
 mod drivers;
 mod sensors;
 
+use apex_kinetic_data_plane::safety::SafetyController;
 use drivers::drv8835::Drv8835Controller;
 use drivers::mpu6050::Mpu6050Sensor;
 use drivers::tb6612::Tb6612Controller;
@@ -17,6 +18,7 @@ struct HardwareState {
     proximity_status: String,
     left_motor_speed: i8,
     right_motor_speed: i8,
+    proximity_mm: Option<u32>,
 }
 
 fn main() {
@@ -29,14 +31,12 @@ fn main() {
     let right_motor = Drv8835Controller::new("right");
     let track_motor = Tb6612Controller::new();
 
-    let left_motor_thread = left_motor.clone();
-    let right_motor_thread = right_motor.clone();
-    let track_motor_thread = track_motor.clone();
+    let controller = SafetyController::new(500, 11_000, 300);
+    let started = std::time::Instant::now();
     let health_state = state.clone();
     thread::spawn(move || loop {
         let imu_reading = imu.read_imu_metrics();
-        let mut state = health_state.lock().unwrap();
-        state.imu_status = imu_reading;
+        health_state.lock().unwrap().imu_status = imu_reading;
         thread::sleep(Duration::from_millis(250));
     });
 
@@ -45,26 +45,24 @@ fn main() {
         let distance = proximity.poll_distance_mm();
         let mut state = proximity_state.lock().unwrap();
         state.proximity_status = format!("distance_mm={}", distance);
-        if distance < 300 {
-            left_motor_thread.stop();
-            right_motor_thread.stop();
-            track_motor_thread.set_speed(0, 0);
-            let mut state = proximity_state.lock().unwrap();
-            state.left_motor_speed = 0;
-            state.right_motor_speed = 0;
-        }
+        state.proximity_mm = Some(distance);
+        drop(state);
         thread::sleep(Duration::from_millis(200));
     });
 
     loop {
-        left_motor.set_speed(80);
-        right_motor.set_speed(80);
-        track_motor.set_speed(64, 64);
-
+        let distance = state.lock().unwrap().proximity_mm;
+        // No controller or voltage adapter is attached in this modeled runtime.
+        // The authority gate therefore emits stop commands only.
+        let decision =
+            controller.decide(started.elapsed().as_millis() as u64, false, None, distance);
+        left_motor.set_speed(decision.left);
+        right_motor.set_speed(decision.right);
+        track_motor.set_speed(decision.left, decision.right);
         {
             let mut state = state.lock().unwrap();
-            state.left_motor_speed = 80;
-            state.right_motor_speed = 80;
+            state.left_motor_speed = decision.left;
+            state.right_motor_speed = decision.right;
             log::info!("Hardware state: {:?}", *state);
         }
 

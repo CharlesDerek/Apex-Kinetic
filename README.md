@@ -28,6 +28,12 @@ Rust driver models translated from the legacy robot source with translated and m
 - `ir_receiver`: NEC infrared command decode table
 
 See `docs/drivers.md` for the driver inventory and migration notes.
+The modeled data-plane runtime now defaults to zero motor output. A command
+watchdog requires a current controller generation, fresh command, controller
+connection, sufficient voltage, and safe proximity before it permits motion.
+The simulated proximity loop no longer deadlocks while stopping motors, and
+the main loop cannot immediately override a stop with an unconditional drive
+command. No physical GPIO/PWM board adapter has been validated.
 
 The vision node publishes a versioned `system.health` event to Kafka during
 startup, certificate loading, mTLS connection, stream operation, and failures.
